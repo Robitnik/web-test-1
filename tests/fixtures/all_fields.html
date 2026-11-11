@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>All field types</title>
+<style>
+  body { font: 14px sans-serif; max-width: 640px; margin: 24px auto; }
+  form > * { display: block; margin: 6px 0; }
+  .sr-only { position: absolute; opacity: 0; width: 1px; height: 1px; }
+  .hp { position: absolute; left: -10000px; top: 0; }
+  #fruit { border: 1px solid #999; padding: 4px; cursor: pointer; }
+  [role=option] { padding: 4px; cursor: pointer; }
+</style>
+</head>
+<body>
+<form id="f">
+  <label>First name <input name="first_name"></label>
+  <label for="email">Email</label><input id="email" name="email" type="email">
+  <input name="password" type="password" placeholder="Password">
+  <input name="age" type="number">
+  <input name="phone" type="tel" aria-label="Phone">
+  <input name="site" type="url">
+  <input name="q" type="search">
+  <label>Bio <textarea name="bio"></textarea></label>
+  <label>Birthday <input name="birthday" type="date"></label>
+  <input name="alarm" type="time">
+  <input name="meeting" type="datetime-local">
+  <input name="month" type="month">
+  <input name="week" type="week">
+  <input name="color" type="color">
+  <input name="volume" type="range" min="0" max="100">
+
+  <label><input type="checkbox" name="agree" value="yes"> I agree</label>
+  <label><input type="checkbox" name="news" value="yes" class="sr-only"> <span>Newsletter</span></label>
+
+  <fieldset><legend>Size</legend>
+    <label><input type="radio" name="size" value="s"> Small</label>
+    <label><input type="radio" name="size" value="m"> Medium</label>
+    <label><input type="radio" name="size" value="l"> Large</label>
+  </fieldset>
+  <fieldset><legend>Topics</legend>
+    <label><input type="checkbox" name="topics" value="seo"> SEO</label>
+    <label><input type="checkbox" name="topics" value="ads" checked> Ads</label>
+    <label><input type="checkbox" name="topics" value="dev"> Development</label>
+  </fieldset>
+
+  <label>Country
+    <select name="country">
+      <option value="">--</option>
+      <option value="ua">Ukraine</option>
+      <option value="us">United States</option>
+      <option value="pl" disabled>Poland</option>
+    </select>
+  </label>
+  <label>Langs
+    <select name="langs" multiple>
+      <option value="en">English</option>
+      <option value="uk">Ukrainian</option>
+      <option value="de">German</option>
+    </select>
+  </label>
+
+  <label>Avatar <input type="file" name="avatar" accept="image/*"></label>
+  <label>Docs <input type="file" name="docs" multiple accept=".pdf,.txt"></label>
+  <input type="file" name="resume" id="resume" style="display:none">
+  <button type="button" id="upload_btn"
+          onclick="document.getElementById('resume').click()">Upload resume</button>
+
+  <label>City <input name="city" list="cities"></label>
+  <datalist id="cities"><option value="Kyiv"><option value="Lviv"></datalist>
+
+  <div id="notes" contenteditable="true" aria-label="Notes"
+       style="min-height:40px;border:1px solid #ccc"></div>
+
+  <div id="dark" role="switch" aria-checked="false" aria-label="Dark mode" tabindex="0"
+       onclick="this.setAttribute('aria-checked', this.getAttribute('aria-checked') === 'true' ? 'false' : 'true')">
+    Dark mode</div>
+
+  <div id="fruit" role="combobox" aria-label="Fruit" aria-expanded="false" tabindex="0">Choose fruit</div>
+  <div id="fruit_list" role="listbox" hidden>
+    <div role="option" data-value="apple">Apple</div>
+    <div role="option" data-value="banana">Banana</div>
+    <div role="option" data-value="cherry">Cherry</div>
+  </div>
+
+  <!-- anti-bot trap: a person never sees this -->
+  <input name="website_hp" class="hp" tabindex="-1" autocomplete="off" aria-label="Leave empty">
+  <input type="hidden" name="token" value="abc">
+  <input name="locked" value="x" disabled aria-label="Locked">
+
+  <button type="submit">Send</button>
+</form>
+
+<script>
+  const fruit = document.getElementById('fruit');
+  const list = document.getElementById('fruit_list');
+  fruit.addEventListener('click', () => { list.hidden = false; fruit.setAttribute('aria-expanded', 'true'); });
+  list.addEventListener('click', (e) => {
+    const o = e.target.closest('[role=option]');
+    if (!o) return;
+    fruit.textContent = o.textContent;
+    fruit.dataset.value = o.dataset.value;
+    list.hidden = true;
+    fruit.setAttribute('aria-expanded', 'false');
+  });
+  document.getElementById('f').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const out = {};
+    for (const [k, v] of new FormData(e.target)) {
+      (out[k] ??= []).push(v instanceof File ? v.name : v);
+    }
+    out.notes = document.getElementById('notes').innerText.trim();
+    out.dark = document.getElementById('dark').getAttribute('aria-checked');
+    out.fruit = fruit.dataset.value || null;
+    window.__submitted = out;
+  });
+</script>
+</body>
+</html>

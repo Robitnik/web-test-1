@@ -111,14 +111,19 @@ class Browser:
         self._ctx.set_default_navigation_timeout(cfg.timeout_ms)
 
     async def close(self) -> None:
-        if self._ctx is not None:
+        """Never raises: a window the user already closed or a dead driver is only logged."""
+        ctx, self._ctx = self._ctx, None
+        if ctx is not None:
             try:
-                await self._ctx.close()
-            finally:
-                self._ctx = None
-        if self._pw is not None:
-            await self._pw.stop()
-            self._pw = None
+                await ctx.close()
+            except Exception as exc:  # noqa: BLE001
+                log.warning("browser context close failed: %s", exc)
+        pw, self._pw = self._pw, None
+        if pw is not None:
+            try:
+                await pw.stop()
+            except Exception as exc:  # noqa: BLE001
+                log.warning("playwright stop failed: %s", exc)
 
     # ------------------------------------------------------------------- pages
     async def page(self) -> Page:

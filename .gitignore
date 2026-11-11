@@ -12,3 +12,7 @@ build/
 downloads/
 out/
 .env
+logs/
+
+# downloaded by report_data.py on first run
+files/mountain.jpg

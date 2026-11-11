@@ -11,6 +11,7 @@ dependencies = [
 
 [project.scripts]
 webtest = "webtest.cli:main"
+webform = "webtest.formcli:main"
 
 [dependency-groups]
 dev = [
