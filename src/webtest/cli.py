@@ -10,6 +10,7 @@ from datetime import datetime
 from importlib.metadata import version
 from pathlib import Path
 
+from webtest import formcli
 from webtest.browser import Browser
 from webtest.chrome import chrome_version, find_chrome
 from webtest.config import BrowserConfig
@@ -81,6 +82,55 @@ async def _check(args: argparse.Namespace) -> int:
     return 1 if flags else 0
 
 
+async def _form_scan(args: argparse.Namespace) -> int:
+    from webtest.forms import describe_form
+
+    async with Browser(_config(args)) as b:
+        page = await b.page()
+        await b.goto(page, args.url)
+        root = page.locator(args.form) if args.form else page
+        fields = await describe_form(root)
+    keep = ("key", "kind", "label", "required", "multiple", "accept", "honeypot_suspect")
+    for f in fields:
+        row = {k: f[k] for k in keep if f.get(k) not in (None, False, "")}
+        if f.get("options"):
+            row["options"] = [o["label"] for o in f["options"]][:15]
+        print(json.dumps(row, ensure_ascii=False))
+    print(f"\n{len(fields)} fields")
+    return 0
+
+
+async def _captcha_balance(args: argparse.Namespace) -> int:
+    from webtest.captcha import CaptchaClient, CaptchaError
+
+    client = CaptchaClient.from_env()
+    if client is None:
+        print("captcha_key is not set in .env")
+        return 1
+    try:
+        print(f"{client.provider}: balance {await client.balance()}")
+    except CaptchaError as exc:
+        print(f"{client.provider}: {exc}")
+        return 1
+    return 0
+
+
+async def _captcha_detect(args: argparse.Namespace) -> int:
+    from webtest.captcha import detect_captcha
+
+    async with Browser(_config(args)) as b:
+        page = await b.page()
+        await b.goto(page, args.url)
+        info = await detect_captcha(page, page.locator(args.form) if args.form else None)
+    if info is None:
+        print("no captcha found")
+        return 0
+    print(json.dumps({k: v for k, v in vars(info).items()
+                      if k not in ("widget", "image", "answer_input") and v not in (None, False)},
+                     indent=2))
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(prog="webtest")
     sub = p.add_subparsers(dest="cmd", required=True)
@@ -105,12 +155,29 @@ def main(argv: list[str] | None = None) -> int:
         help="also screenshot these public bot-detection test pages",
     )
 
+    fs = sub.add_parser("form-scan", help="list every form field on a page with a fill key")
+    common(fs)
+    fs.add_argument("url")
+    fs.add_argument("--form", help="selector of the form to scope to, e.g. 'form#signup'")
+
+    sm = sub.add_parser("submit", help="open URL, fill a form from JSON, submit (= webform)")
+    formcli.add_arguments(sm)
+
+    cb = sub.add_parser("captcha-balance", help="balance of the captcha API account")
+    common(cb)
+    cd = sub.add_parser("captcha-detect", help="which captcha a page/form has (no solving)")
+    common(cd)
+    cd.add_argument("url")
+    cd.add_argument("--form", help="selector of the form to scope to")
+
     args = p.parse_args(argv)
     if args.cmd == "doctor":
         return cmd_doctor(args)
-    if args.cmd == "open":
-        return asyncio.run(_open(args))
-    return asyncio.run(_check(args))
+    if args.cmd == "submit":
+        return formcli.run_cli(args)
+    runners = {"open": _open, "check": _check, "form-scan": _form_scan,
+               "captcha-balance": _captcha_balance, "captcha-detect": _captcha_detect}
+    return asyncio.run(runners[args.cmd](args))
 
 
 if __name__ == "__main__":
