@@ -1,0 +1,34 @@
+[project]
+name = "webtest"
+version = "0.1.0"
+description = "Base browser control on patchright (undetected Playwright) + real Google Chrome"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "patchright>=1.64.4",
+    "python-dotenv>=1.0",
+]
+
+[project.scripts]
+webtest = "webtest.cli:main"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3",
+    "ruff>=0.8",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/webtest"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = ["live: launches a real browser (run with WEBTEST_LIVE=1)"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
